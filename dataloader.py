@@ -44,7 +44,9 @@ class DataLoader(data.Dataset):
         # load the json file which contains additional information about the dataset
         print('DataLoader loading json file: ', opt.input_json)
         self.info = json.load(open(self.opt.input_json))
+        # --ix_to_word是输入向量到词空间的一个映射
         self.ix_to_word = self.info['ix_to_word']
+        #  --vocab_size标明词个数，也是维度的标记，最后一个词为END特殊词
         self.vocab_size = len(self.ix_to_word)
         print('vocab size is ', self.vocab_size)
         
@@ -83,8 +85,11 @@ class DataLoader(data.Dataset):
         print('assigned %d images to split val' %len(self.split_ix['val']))
         print('assigned %d images to split test' %len(self.split_ix['test']))
 
+
+        # split_ix 与 iterators 分别为总迭代数和当前迭代数。
         self.iterators = {'train': 0, 'val': 0, 'test': 0}
-        
+
+        #prefetch_process 是用来取数据的子进程集合
         self._prefetch_process = {} # The three prefetch process
         for split in self.iterators.keys():
             self._prefetch_process[split] = BlobFetcher(split, self, split=='train')
@@ -97,12 +102,15 @@ class DataLoader(data.Dataset):
         atexit.register(cleanup)
 
     def get_batch(self, split, batch_size=None, seq_per_img=None):
+        #batch_size：每批次处理的图片数量。
         batch_size = batch_size or self.batch_size
         seq_per_img = seq_per_img or self.seq_per_img
 
         fc_batch = [] # np.ndarray((batch_size * seq_per_img, self.opt.fc_feat_size), dtype = 'float32')
         att_batch = [] # np.ndarray((batch_size * seq_per_img, 14, 14, self.opt.att_feat_size), dtype = 'float32')
+        #label_batch 代表着当前batch有 batch_size*seq_per_img个seq.其中每个seq有seq_length个word,每个坑对应着该word对应的id,
         label_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype = 'int')
+        #Todo what is mask_batch?
         mask_batch = np.zeros([batch_size * seq_per_img, self.seq_length + 2], dtype = 'float32')
 
         wrapped = False
@@ -114,8 +122,13 @@ class DataLoader(data.Dataset):
             import time
             t_start = time.time()
             # fetch image
+            # tmp_wrapped 代表这个epoch是否结束，结束为True，否则为False.
+            # tmp_fc,tmp_att是抽取该batch中的batch_size张图片对应的2种特征，
+            # ix 代表该样本的图片编号，
             tmp_fc, tmp_att,\
                 ix, tmp_wrapped = self._prefetch_process[split].get()
+
+            # fc_batch 中每个img下的5个seq对应的tmp_fc都一样。
             fc_batch += [tmp_fc] * seq_per_img
             att_batch += [tmp_att] * seq_per_img
 
@@ -127,20 +140,25 @@ class DataLoader(data.Dataset):
 
             if ncap < seq_per_img:
                 # we need to subsample (with replacement)
+                # 如果caption数量少于seq_per_img.则从图片对应的caption中subsampling.
                 seq = np.zeros([seq_per_img, self.seq_length], dtype = 'int')
                 for q in range(seq_per_img):
                     ixl = random.randint(ix1,ix2)
                     seq[q, :] = self.h5_label_file['labels'][ixl, :self.seq_length]
             else:
+                # 如果ncap == seq_per_img，其实就是ix1.
+                # 否则就是从中随机截取一段sqe_per_img长度以满足seq[]格式需求。
                 ixl = random.randint(ix1, ix2 - seq_per_img + 1)
                 seq = self.h5_label_file['labels'][ixl: ixl + seq_per_img, :self.seq_length]
-            
+
+
             label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = seq
 
             if tmp_wrapped:
                 wrapped = True
 
             # Used for reward evaluation
+            # gts 在当前img的caption 后面再加了一条额外的caption.比如当前是h5_label_file['labels'][0:4]则其为[0:5]
             gts.append(self.h5_label_file['labels'][self.label_start_ix[ix] - 1: self.label_end_ix[ix]])
         
             # record associated info as well
@@ -153,7 +171,16 @@ class DataLoader(data.Dataset):
 
         # generate mask
         t_start = time.time()
+        # nonzeros是个list 代表着矩阵中每一行中非0元素的个数（再加上2）
         nonzeros = np.array(list(map(lambda x: (x != 0).sum()+2, label_batch)))
+        # 假如label_batch如line191
+        # nonzero 便为[6 5 6 4 6]
+        # 此时mask_batch便为
+        # [1, 1, 1, 1, 1, 1]
+        # [1, 1, 1, 1, 1, 0]
+        # [1, 1, 1, 1, 1, 1]
+        # [1, 1, 1, 1, 0, 0]
+        # [1, 1, 1, 1, 1, 1]
         for ix, row in enumerate(mask_batch):
             row[:nonzeros[ix]] = 1
         #print('mask', time.time() - t_start)
@@ -161,9 +188,20 @@ class DataLoader(data.Dataset):
         data = {}
         data['fc_feats'] = np.stack(fc_batch)
         data['att_feats'] = np.stack(att_batch)
+        # [[0, 1, 3, 1, 1, 0],
+        # [0, 1, 1, 0, 1, 0],
+        # [0, 11, 1, 1, 1, 0],
+        # [0, 1, 0, 1, 0, 0],
+        # [0, 1, 1, 4, 1, 0]]
+        # 以上是label_batch样式，shape为 (batch_size * seq_per_img, self.seq_length + 2)
+        # 其中内容为一个label的caption. 具体是每个img下的seq_per_img个已经trim了的caption.
         data['labels'] = label_batch
+        # gts 是一个长度为 batch_size 的 list
+        # 其中每个元素为(seq_per_img+1 * seq_length)
+        # 当前img的caption 后面再加了一条额外的caption.比如当前是h5_label_file['labels'][0:4]则其为[0:5]
         data['gts'] = gts
-        data['masks'] = mask_batch 
+        data['masks'] = mask_batch
+        # 当前迭代到哪个地方了，最大迭代数是多少， 有没有结束一个epoch
         data['bounds'] = {'it_pos_now': self.iterators[split], 'it_max': len(self.split_ix[split]), 'wrapped': wrapped}
         data['infos'] = infos
 
@@ -203,6 +241,9 @@ class BlobFetcher():
         2. wrapped: a new epoch, the split_ix and iterator have been updated in the get_minibatch_inds already.
         """
         # batch_size is 0, the merge is done in DataLoader class
+
+        # torch.utils.data.Data loader.
+        # Combines a dataset and a sampler, and provides single- or multi-process iterators over the dataset.
         self.split_loader = iter(data.DataLoader(dataset=self.dataloader,
                                             batch_size=1,
                                             sampler=self.dataloader.split_ix[self.split][self.dataloader.iterators[self.split]:],
@@ -215,25 +256,33 @@ class BlobFetcher():
         max_index = len(self.dataloader.split_ix[self.split])
         wrapped = False
 
+        # ri 是当前迭代到的split_ix[split]列表中的第ri个元素。
+        # ix 是split_ix[split]列表中第ri个元素代表的img的index.
         ri = self.dataloader.iterators[self.split]
         ix = self.dataloader.split_ix[self.split][ri]
 
         ri_next = ri + 1
+        # wrapped: a new epoch, the split_ix and iterator have been updated in the get_minibatch_inds already.
         if ri_next >= max_index:
             ri_next = 0
             if self.if_shuffle:
                 random.shuffle(self.dataloader.split_ix[self.split])
             wrapped = True
+        #如果当前split迭代结束,则把其重新置为0.
         self.dataloader.iterators[self.split] = ri_next
 
         return ix, wrapped
     
     def get(self):
+        # 搞出个迭代器，生产下一批数据
         if not hasattr(self, 'split_loader'):
             self.reset()
 
         ix, wrapped = self._get_next_minibatch_inds()
+        # dataset的迭代器。返回值
         tmp = self.split_loader.next()
+        # wrapped 代表 split_ix[split] 已经迭代完一轮了，
+        # 此时将split_loader reset掉，相当于重新开始
         if wrapped:
             self.reset()
 

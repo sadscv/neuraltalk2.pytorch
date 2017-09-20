@@ -42,11 +42,30 @@ class LanguageModelCriterion(nn.Module):
 
     def forward(self, input, target, mask):
         # truncate to the same size
+        # input 是model的输出，维度为batchsize*
         target = target[:, :input.size(1)]
         mask =  mask[:, :input.size(1)]
+        '''
+        torch.view:Returns a new tensor with the same data but different size.
+
+        The returned tensor shares the same data and must have the same number of elements,
+        but may have a different size. A tensor must be contiguous() to be viewed.
+
+        >>> x = torch.randn(4, 4)
+        >>> x.size()
+        torch.Size([4, 4])
+        >>> y = x.view(16)
+        >>> y.size()
+        torch.Size([16])
+        >>> z = x.view(-1, 8)  # the size -1 is inferred from other dimensions
+        >>> z.size()
+        torch.Size([2, 8])
+        '''
         input = to_contiguous(input).view(-1, input.size(2))
         target = to_contiguous(target).view(-1, 1)
         mask = to_contiguous(mask).view(-1, 1)
+        # gather用法 https://discuss.pytorch.org/t/select-specific-columns-of-each-row-in-a-torch-tensor/497
+        # mask 如果target中某些项为0(即代表单词UNK）则将gather后的结果末尾去掉相应数量的单元。（虽然我并不知道这有什么用）
         output = - input.gather(1, target) * mask
         output = torch.sum(output) / torch.sum(mask)
 

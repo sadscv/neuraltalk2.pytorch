@@ -40,6 +40,7 @@ import torchvision.models as models
 from torch.autograd import Variable
 import skimage.io
 
+#大致就是大写转小写，再构建词汇表。
 def build_vocab(imgs, params):
   count_thr = params['word_count_threshold']
 
@@ -126,7 +127,7 @@ def encode_captions(imgs, params, wtoi):
     label_arrays.append(Li)
     label_start_ix[i] = counter
     label_end_ix[i] = counter + n - 1
-    
+
     counter += n
   
   L = np.concatenate(label_arrays, axis=0) # put all the labels together
@@ -165,12 +166,12 @@ def main(params):
   out['ix_to_word'] = itow # encode the (1-indexed) vocab
   out['images'] = []
   for i,img in enumerate(imgs):
-    
+
     jimg = {}
     jimg['split'] = img['split']
     if 'filename' in img: jimg['file_path'] = os.path.join(img['filepath'], img['filename']) # copy it over, might need
     if 'cocoid' in img: jimg['id'] = img['cocoid'] # copy over & mantain an id, if present (e.g. coco ids, useful)
-    
+
     out['images'].append(jimg)
   
   json.dump(out, open(params['output_json'], 'w'))
