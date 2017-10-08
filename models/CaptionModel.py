@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file contains ShowAttendTell and AllImg model
 
 # ShowAttendTell is from Show, Attend and Tell: Neural Image Caption Generation with Visual Attention

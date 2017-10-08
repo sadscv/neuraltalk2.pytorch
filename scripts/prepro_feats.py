@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Preprocess a raw json dataset into hdf5/json files for use in data_loader.lua
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file contains Att2in2, AdaAtt, AdaAttMO, TopDown model
 
 # AdaAtt is from Knowing When to Look: Adaptive Attention via A Visual Sentinel for Image Captioning

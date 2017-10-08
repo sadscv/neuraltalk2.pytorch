@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This file contains att2in model
 # Att2in is from Self-critical Sequence Training for Image Captioning
 # https://arxiv.org/abs/1612.00563
