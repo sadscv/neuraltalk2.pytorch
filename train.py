@@ -63,7 +63,8 @@ def train(opt):
     lr_history = histories.get('lr_history', {})
     ss_prob_history = histories.get('ss_prob_history', {})
 
-    #iterators 与 split_ix 格式相同，都是{'train': [], 'val': [], 'test': []}
+    #iterators 是{'train': [], 'val': [], 'test': []}
+    # split_ix 中每个split对应的都是一个list，代表对应的img id
     loader.iterators = infos.get('iterators', loader.iterators)
     loader.split_ix = infos.get('split_ix', loader.split_ix)
     #载入最高得分,没有则置0.
@@ -129,8 +130,8 @@ def train(opt):
         optimizer.zero_grad()
         #Todo read it again.
         #大约model()返回了当前batch的feature训练时的预测值,这时括号中的第三个参数labels应该只是用来占位的。
-        loss = crit.forward(model(fc_feats, att_feats, labels), labels[:,1:], masks[:,1:])
-        # loss = crit(model(fc_feats, att_feats, labels), labels[:,1:], masks[:,1:])
+        # loss = crit.forward(model(fc_feats, att_feats, labels), labels[:,1:], masks[:,1:])
+        loss = crit(model(fc_feats, att_feats, labels), labels[:,1:], masks[:,1:])
         loss.backward()
         """
         clip_gradient 具体的细节是，
@@ -180,7 +181,6 @@ def train(opt):
             eval_kwargs = {'split': 'val',
                             'dataset': opt.input_json}
             eval_kwargs.update(vars(opt))
-            #Todo ,read the eval_utils.eval_split  方法
             # 大概就是计算验证集的结果
             val_loss, predictions, lang_stats = eval_utils.eval_split(model, crit, loader, eval_kwargs)
 
