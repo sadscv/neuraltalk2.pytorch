@@ -6,23 +6,27 @@
 import json
 data_split = open('data_split.json', 'w+')
 
-
+valid_data = open('valid_data.json', 'w+')
 with open('data.json','r+') as data:
     file = json.load(data)
     out = {}
     out['images'] = []
+    valid_out = {}
+    valid_out['images'] = []
     for i in range(len(file['images'])):
         tmp_dict = file['images'][i]
         print('count:{}, info:{}'.format(i, tmp_dict))
         if i >= 200000 and i < 205000:
             tmp_dict['split'] = 'val'
             print(i, tmp_dict)
+            valid_out['images'].append(tmp_dict)
         if i >= 205000:
             tmp_dict['split'] = 'test'
             print(i, tmp_dict)
         out['images'].append(tmp_dict)
     out['ix_to_word'] = file['ix_to_word']
     json.dump(out, data_split)
+    json.dump(valid_out, valid_data)
 
 # with open('data_split.json','r') as data:
 #     file = json.load(data)

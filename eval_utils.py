@@ -19,12 +19,13 @@ import misc.utils as utils
 
 def language_eval(dataset, preds, model_id, split):
     import sys
-    if 'coco' in dataset:
-        sys.path.append("coco-caption")
-        annFile = 'coco-caption/annotations/captions_val2014.json'
-    else:
-        sys.path.append("f30k-caption")
-        annFile = 'f30k-caption/annotations/dataset_flickr30k.json'
+    # if 'coco' in dataset:
+    #     sys.path.append("coco-caption")
+    #     annFile = 'coco-caption/annotations/captions_val2014.json'
+    # else:
+    #     sys.path.append("f30k-caption")
+    #     annFile = 'f30k-caption/annotations/dataset_flickr30k.json'
+    annFile = './data/val_file.json'
     from caption_eval.coco_caption.pycxevalcap.eval import COCOEvalCap
     from caption_eval.coco_caption.pycxtools.coco import COCO
 
