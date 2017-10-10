@@ -25,7 +25,7 @@ class myResnet(nn.Module):
 
 
         # fc means fully connection.
-        # maybe fc的尺寸是 1*2048
+        # fc的尺寸是 fc = list[], len(fc)=2048
         fc = x.mean(3).mean(2).squeeze()
         # 自适应avg pooling,使得x经过pooling之后变成[att_size,att_size]的尺寸。
         '''
@@ -35,7 +35,7 @@ class myResnet(nn.Module):
         >>> x.permute(2, 0, 1).size()
         torch.Size([5, 2, 3])
         '''
-        #也许att的尺寸是 14*14*2048
+        # att的尺寸是 14*14*2048
         att = F.adaptive_avg_pool2d(x,[att_size,att_size]).squeeze().permute(1, 2, 0)
         
         return fc, att

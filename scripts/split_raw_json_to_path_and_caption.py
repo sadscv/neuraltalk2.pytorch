@@ -86,7 +86,8 @@ def how_many_line(filepath):
         for line in f:
             count +=1
         print(count)
-    pass
+
+
 
 
 if __name__ == '__main__':

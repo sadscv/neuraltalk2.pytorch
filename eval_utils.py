@@ -25,8 +25,8 @@ def language_eval(dataset, preds, model_id, split):
     else:
         sys.path.append("f30k-caption")
         annFile = 'f30k-caption/annotations/dataset_flickr30k.json'
-    from pycocotools.coco import COCO
-    from pycocoevalcap.eval import COCOEvalCap
+    from caption_eval.coco_caption.pycxevalcap.eval import COCOEvalCap
+    from caption_eval.coco_caption.pycxtools.coco import COCO
 
     encoder.FLOAT_REPR = lambda o: format(o, '.3f')
 
@@ -116,6 +116,7 @@ def eval_split(model, crit, loader, eval_kwargs={}):
 
         # forward the model to also get generated samples for each image
         # Only leave one feature for each image, in case duplicate sample
+        # 这里是从batch_feats中截取属于每张图片的fc_feats,att_feats.
         tmp = [data['fc_feats'][np.arange(loader.batch_size) * loader.seq_per_img], 
             data['att_feats'][np.arange(loader.batch_size) * loader.seq_per_img]]
         tmp = [Variable(torch.from_numpy(_), volatile=True).cuda() for _ in tmp]

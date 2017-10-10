@@ -71,7 +71,7 @@ class DataLoader(data.Dataset):
         print('max sequence length in data is', self.seq_length)
         # load the pointers in full to RAM (should be small enough)
         # label_start_ix label_end_ix 是两个数组，尺寸为N ，
-        # start_ix[i],end_ix[i]分别代表着N张图片中的第i张的caption在label_arrays中的起始位置 。
+        # start_ix[i],end_ix[i]分别iterators代表着N张图片中的第i张的caption在label_arrays中的起始位置 。
         self.label_start_ix = self.h5_label_file['label_start_ix'][:]
         self.label_end_ix = self.h5_label_file['label_end_ix'][:]
         self.num_images = self.label_start_ix.shape[0]
@@ -136,19 +136,24 @@ class DataLoader(data.Dataset):
         for i in range(batch_size):
             # fetch image
             # tmp_wrapped 代表这个epoch是否结束，结束为True，否则为False.
+            # 其中tmp_fc, tmp_att 即是self.__getitem__所返回的内容。
             # tmp_fc,tmp_att是抽取该batch中的batch_size张图片对应的2种特征，
             # ix 代表该样本的图片编号，
             tmp_fc, tmp_att, \
             ix, tmp_wrapped = self._prefetch_process[split].get()
 
             # fc_batch 中每个img下的5个seq对应的tmp_fc都一样。
+            # fc_batch 最终将是一个batch_size * seq_per_img长的list
+            # 其中每5个都相同，代表同一个img的fc_att.
             fc_batch += [tmp_fc] * seq_per_img
             att_batch += [tmp_att] * seq_per_img
 
             # fetch the sequence labels
             # Todo if here should -1
-            ix1 = self.label_start_ix[ix] - 1  # label_start_ix starts from 1
-            ix2 = self.label_end_ix[ix] - 1
+            # ix1 = self.label_start_ix[ix] - 1  # label_start_ix starts from 1
+            # ix2 = self.label_end_ix[ix] - 1
+            ix1 = self.label_start_ix[ix]   # label_start_ix starts from 1
+            ix2 = self.label_end_ix[ix]
             ncap = ix2 - ix1 + 1  # number of captions available for this image
             assert ncap > 0, 'an image does not have any label. this can be handled but right now isn\'t'
 
@@ -173,7 +178,8 @@ class DataLoader(data.Dataset):
             # Used for reward evaluation
             # gts 在当前img的caption 后面再加了一条额外的caption.比如当前是h5_label_file['labels'][0:4]则其为[0:5]
             # Todo 这儿-1是否需要
-            gts.append(self.h5_label_file['labels'][self.label_start_ix[ix] - 1: self.label_end_ix[ix]])
+            # gts.append(self.h5_label_file['labels'][self.label_start_ix[ix] - 1: self.label_end_ix[ix]])
+            gts.append(self.h5_label_file['labels'][self.label_start_ix[ix]: self.label_end_ix[ix]])
 
             # record associated info as well
             info_dict = {}
@@ -224,13 +230,20 @@ class DataLoader(data.Dataset):
     # It's not coherent to make DataLoader a subclass of Dataset, but essentially, we only need to implement the following to functions,
     # so that the torch.utils.data.DataLoader can load the data according the index.
     # However, it's minimum change to switch to pytorch data loading.
+    # http://pytorch.org/docs/master/data.html
+    # All other datasets should subclass it.
+    # All subclasses should override __len__, and __gtitem__.
     def __getitem__(self, index):
+        #  if a class defines a method named __getitem__(),
+        # x[i] is roughly equivalent to x.__getitem__(i) for old-style classes
+        # and type(x).__getitem__(x, i) for new-style classes.
+
         """This function returns a tuple that is further passed to collate_fn
         """
         ix = index  # self.split_ix[index]
         return get_npy_data(ix, \
-                            os.path.join(self.input_fc_dir, str(self.info['images'][ix]['id']) + '.npy'),
-                            os.path.join(self.input_att_dir, str(self.info['images'][ix]['id']) + '.npz'),
+                            os.path.join(self.input_fc_dir, str(self.info['images'][ix]['id'][:-4]) + '.npy'),
+                            os.path.join(self.input_att_dir, str(self.info['images'][ix]['id'][:-4]) + '.npz'),
                             self.use_att
                             )
 
