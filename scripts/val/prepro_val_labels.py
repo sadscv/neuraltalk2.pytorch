@@ -88,6 +88,7 @@ def build_vocab(params):
         vocab.append('UNK')
     final_captions = []
     for i in file_lines:
+        # 示例: new_caption[i] = ['two', 'man', 'playing', 'football', 'in', 'UNK', 'playground']
         new_caption = [w if counts.get(w, 0) > count_thr else 'UNK' for w in i.strip().split()]
         final_captions.append(new_caption)
     return vocab, final_captions

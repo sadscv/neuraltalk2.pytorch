@@ -154,6 +154,7 @@ class DataLoader(data.Dataset):
             # ix2 = self.label_end_ix[ix] - 1
             ix1 = self.label_start_ix[ix]   # label_start_ix starts from 1
             ix2 = self.label_end_ix[ix]
+            print('ix1:{}, ix2:{}'.format(ix1, ix2))
             ncap = ix2 - ix1 + 1  # number of captions available for this image
             assert ncap > 0, 'an image does not have any label. this can be handled but right now isn\'t'
 

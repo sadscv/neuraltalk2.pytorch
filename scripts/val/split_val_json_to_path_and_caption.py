@@ -37,27 +37,50 @@ if not os.path.isdir(FILE_DIR):
     os.makedirs(FILE_DIR)
 def load_json():
     with open(os.path.join(FILE_DIR, CAPTION_FILENAME),'w+') as cap,\
+            open(os.path.join(FILE_DIR, 'tmp_caption'), 'w+') as cap_2,\
             open(os.path.join(FILE_DIR, IMG_ID_FILENAME), 'w+') as img_id,\
             open(origin_json_path, 'r') as f:
         file = json.load(f)
         count_1 = 0
-        count_c = 0
+        count_error = 0
         for i in file:
             count_1 +=1
 
             # print('count:{}, url:{}'.format(count, i['url']))
             img_id.write(i['image_id']+'\n')
+            MOD_FLAG = -1
+            # 如果有空行caption,用同样图片的caption复制过来
+            ix_c = 0
             for c in i['caption']:
-                if count_1 == 861:
-                    print(c)
-                    c = re.sub('[\r\n\t]', '', c)
-                    print(c)
-                count_c += 1
-                c = re.sub('[\r\n\t]', '', c).encode('utf8')
-                cap.write(c.strip()+'\n')
+                if len(c) <= 1:
+                    print('# mod this')
+                    for _ in i['caption']:
+                        print(_)
+                    MOD_FLAG = ix_c
+                ix_c += 1
+            if MOD_FLAG == -1:
+                for c_0 in i['caption']:
+                    c_0 = re.sub('[\r\n\t]', '', c_0).encode('utf8')
+                    cap.write(c_0.strip() + '\n')
+            else:
+                tmp = []
+                for c_1 in i['caption']:
+                    c_1 = re.sub('[\r\n\t]', '', c_1).encode('utf8')
+                    tmp.append(c_1)
+                    # print([_.decode('unicode_escape') for _ in tmp])
+                if MOD_FLAG < 4:
+                    tmp[MOD_FLAG] = tmp[MOD_FLAG + 1]
+                else:
+                    tmp[MOD_FLAG] = tmp[MOD_FLAG - 1]
+                for _ in tmp:
+                    cap.write(_.strip() + '\n')
+                    cap_2.write(_.strip() + '\n')
+                count_error += 1
+                ix_c += 1
 
-        print(count_1)
-        print(count_c)
+
+        print('{} total caption splited'.format(count_1))
+        print('{} error fixed'.format(count_error))
 
 
 def cut_caption():

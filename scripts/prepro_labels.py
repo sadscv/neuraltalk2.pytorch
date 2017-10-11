@@ -43,6 +43,12 @@ FILE_DIR = '/home/chen/open/challenger/'
 # 大致就是大写转小写，再构建词汇表。
 
 def build_vocab(params):
+    """
+    对已经分好词的 caption.txt.seg处理,罕见词转UNK之后
+    生成对应词典（word_to_id映射）以及原始caption经词典映射之后的final_caption.
+    :param params:
+    :return:
+    """
     count_thr = params['word_count_threshold']
     # 这儿的txt.seg 文件是每行都代表一个caption.
     caption_seg_dir = os.path.join(FILE_DIR, 'total_caption.txt.seg')

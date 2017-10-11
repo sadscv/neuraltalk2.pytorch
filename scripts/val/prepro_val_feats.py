@@ -128,7 +128,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # input json
-    parser.add_argument('--input_json', required=True, default='data.json', help='input json file to process into hdf5')
+    parser.add_argument('--input_json', required=True, default='/home/chen/open/challenger/val/data.json', help='input json file to process into hdf5')
     parser.add_argument('--output_dir', default='/home/chen/disk/challenger/features/val', help='output h5 file')
 
     # options
